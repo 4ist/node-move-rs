@@ -1,6 +1,9 @@
 mod node;
 use crate::node::Node;
-
+mod tile;
+use crate::tile::Tile;
+mod grid;
+use crate::grid::Grid;
 mod display;
 use crate::display::display;
 // use crate::node::Node;

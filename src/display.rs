@@ -1,13 +1,11 @@
 use nannou::prelude::*;
 use crate::Node;
-use rand::prelude::*;
 
 pub fn display() {
     nannou::app(model).update(update).run();
 }
 
-const NO_BOIDS: usize = 50;
-const NO_PREDATOR: usize = 2;
+const NO_BOIDS: usize = 200;
 
 const WINDOW_SIZE_X: u32 = 1500;
 const WINDOW_SIZE_Y: u32 = 900;
