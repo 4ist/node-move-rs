@@ -1,53 +1,83 @@
-
 use crate::Tile;
 use crate::TileType;
 use crate::Node;
+use crate::NodeType;
 
 pub trait TimedEvent {
     fn addEvent() {}
 }
+
 pub struct Grid { 
+    //pub tiless: Vec<Vec<Tile>>,  
+    tiles: Vec<Tile>,  
     pub size_x: i32,
     pub size_y: i32,
-    pub tiles: Vec<Vec<Tile>>,  
-                                       
-                                       
-    // Should I add a "Space" or "Tile" type for grid? I
-    // like the idea, this could be like the "background"
-    // which doesn't change if the node in the space/tile
-    // changes
-    
-    // should the grid know anything about the display? -> no 
-    // Maybe grid and node should only contain array values and all translation be managed by
-    // display
-    //  -> yea
+    pub cursor_pos: Option<(i32, i32)>,
 }
 
 impl Grid {
     pub fn new(size_x: i32, size_y: i32) -> Grid {
-        let mut tiles: Vec<Vec<Tile>> = Vec::new();
+        let mut tiles: Vec<Tile> = Vec::new();
         for x in 0..size_x {
-            let mut row = Vec::new();
             for y in 0..size_y {
-                row.push(Tile::new(x, y));
+                tiles.push(Tile::new(x, y));
             }
-            tiles.push(row); 
         }
         Grid {
             size_x,
             size_y,
             tiles,
+            cursor_pos: None,
         } 
     }
+
+
+    pub fn get_tile<'a>(&'a self, x: i32, y: i32) -> &'a Tile {
+        let index = ( x * self.size_y + y) as usize;
+        &self.tiles[index]
+    }
     
-    pub fn add_tile_types(&mut self) {
+    pub fn get_tile_mut<'a>(&'a mut self, x: i32, y: i32) -> &'a mut Tile {
+        let index = ( x * self.size_y + y) as usize;
+        &mut self.tiles[index]
+    }
+ 
+    pub fn setup_add_tile_types(&mut self) {
+        let size_x = self.size_x;
+        let size_y = self.size_y;
+        for x in 0..size_x {
+            for y in 0..size_y {
+                let tile = self.get_tile_mut(x, y);
+                tile.tile_type = TileType::Ground;
+                if x == 0 || y == 0 || x == size_x - 1 || y == size_y - 1 {
+                    tile.tile_type = TileType::Water;
+                }
+            }
+        }
+    }
+   
+    pub fn setup_add_nodes(&mut self) {
         for x in 0..self.size_x {
             for y in 0..self.size_y {
-                if y % 2 == 0 && x % 3 == 0 {
-                    self.tiles[x as usize][y as usize].tile_type = TileType::Water;
-                }
-                if x == 0 || y == 0 || x == self.size_x - 1 || y == self.size_y - 1 {
-                    self.tiles[x as usize][y as usize].tile_type = TileType::Ground;
+                match self.get_tile(x, y).tile_type {
+                    TileType::Water => (),
+                    _ => {
+                        let mut node = Node::new(x, y);
+                        if y % 3 == 0 && x % 2 == 0 {
+                            node.node_type = NodeType::Bush;
+                        }
+                        if x == 1 || y == 1 || x == self.size_x - 2 || y == self.size_y - 2 {
+                            node.node_type = NodeType::Rock;
+                        }
+                        if x == self.size_x/2 && y == self.size_y/2 {
+                            node.node_type = NodeType::Cursor;
+                            self.cursor_pos = Some((x, y));
+                        }
+                        match node.node_type {
+                            NodeType::None => (),
+                            _ => self.get_tile_mut(x, y).node = Some(node),
+                        }
+                    }
                 }
             }
         }
@@ -61,11 +91,10 @@ impl Grid {
     }
 
     pub fn add_node(&mut self, x: i32, y: i32) -> Result<(), String> {
-        // TODO make a custom error type/enum 
         if !self.is_valid_location((x, y)) {
             return Err("Provided position out of range".to_string()); 
         }
-        let mut target_tile = &mut self.tiles[x as usize][y as usize];
+        let target_tile = self.get_tile_mut(x, y);
         match target_tile.node {
             Some(_) => return Err("Position already contains a node".to_string()),
             None => {
@@ -82,16 +111,16 @@ impl Grid {
         if !self.is_valid_location(dst) {
             return Err("Provided source position out of range".to_string()); 
         } 
-        if !self.tiles[src.0 as usize][src.1 as usize].contains_node() {
+        if !self.get_tile(src.0, src.1).contains_node() {
             return Err("Source tile does not contain a node".to_string()); 
         }
-        if self.tiles[dst.0 as usize][dst.1 as usize].contains_node() {
+        if self.get_tile(dst.0, dst.1).contains_node() {
             return Err("Destination tile already contains a node".to_string()); 
         }
-        let node = self.tiles[src.0 as usize][src.1 as usize].node.clone();
-        self.tiles[dst.0 as usize][dst.1 as usize].node = node;
-        self.tiles[src.0 as usize][src.1 as usize].node = None; // do I need to free the old
-                                                                // memory? don't think so
+        let node = self.get_tile(src.0, src.1).node.clone();
+        self.get_tile_mut(dst.0, dst.1).node = node;
+        self.get_tile_mut(src.0, src.1).node = None; 
+
         Ok(())
     }
 
@@ -111,15 +140,15 @@ mod tests {
         #[test]
         fn can_initialize_empty_grid() {
             let grid = Grid::new(SIZE_X, SIZE_Y);
-            assert!(grid.tiles[0][0].node.is_none());
+            assert!(grid.get_tile(0,0).node.is_none());
         }
        
         #[test]
         fn can_add_node() { 
             let mut grid = Grid::new(SIZE_X, SIZE_Y);
-            assert!(grid.tiles[2][3].node.is_none());
+            assert!(grid.get_tile(2,3).node.is_none());
             assert!(grid.add_node(2,3).is_ok());
-            assert!(grid.tiles[2][3].node.is_some());
+            assert!(grid.get_tile(2,3).node.is_some());
         }
         
         #[test]
@@ -145,8 +174,8 @@ mod tests {
             let mut grid = Grid::new(SIZE_X, SIZE_Y);
             grid.add_node(2,3).unwrap();
             assert!(grid.move_node((2,3),(4,5)).is_ok());
-            assert!(grid.tiles[2][3].node.is_none());
-            assert!(grid.tiles[4][5].node.is_some());
+            assert!(grid.get_tile(2,3).node.is_none());
+            assert!(grid.get_tile(4,5).node.is_some());
         }
 
         #[test]
