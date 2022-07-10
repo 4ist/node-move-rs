@@ -1,12 +1,14 @@
 
 use crate::Tile;
+use crate::TileType;
 use crate::Node;
 
-pub struct Grid {
-     
+pub trait TimedEvent {
+    fn addEvent() {}
+}
+pub struct Grid { 
     pub size_x: i32,
     pub size_y: i32,
-    //pub nodes: Vec<Vec<Option<Node>>>,  
     pub tiles: Vec<Vec<Tile>>,  
                                        
                                        
@@ -19,10 +21,6 @@ pub struct Grid {
     // Maybe grid and node should only contain array values and all translation be managed by
     // display
     //  -> yea
-}
-pub struct Location {
-    pub x: i32,
-    pub y: i32,
 }
 
 impl Grid {
@@ -40,6 +38,19 @@ impl Grid {
             size_y,
             tiles,
         } 
+    }
+    
+    pub fn add_tile_types(&mut self) {
+        for x in 0..self.size_x {
+            for y in 0..self.size_y {
+                if y % 2 == 0 && x % 3 == 0 {
+                    self.tiles[x as usize][y as usize].tile_type = TileType::Water;
+                }
+                if x == 0 || y == 0 || x == self.size_x - 1 || y == self.size_y - 1 {
+                    self.tiles[x as usize][y as usize].tile_type = TileType::Ground;
+                }
+            }
+        }
     }
 
     pub fn is_valid_location(&self, location: (i32, i32)) -> bool {
@@ -79,16 +90,9 @@ impl Grid {
         }
         let node = self.tiles[src.0 as usize][src.1 as usize].node.clone();
         self.tiles[dst.0 as usize][dst.1 as usize].node = node;
-        self.tiles[src.0 as usize][src.1 as usize].node = None;
-        //let src_tile = &self.tiles[src.0 as usize][src.1 as usize];
-        //let dst_tile = &self.tiles[dst.0 as usize][dst.1 as usize];
-        
-        
-
-
-        return Ok(());
-
-
+        self.tiles[src.0 as usize][src.1 as usize].node = None; // do I need to free the old
+                                                                // memory? don't think so
+        Ok(())
     }
 
     pub fn display() {}
@@ -100,50 +104,65 @@ mod tests {
 
     const SIZE_X: i32 = 10;
     const SIZE_Y: i32 = 10;
-    #[test]
-    fn is_testable() {
-        assert!(1 < 2);
+
+    mod add {
+        use super::*;
+
+        #[test]
+        fn can_initialize_empty_grid() {
+            let grid = Grid::new(SIZE_X, SIZE_Y);
+            assert!(grid.tiles[0][0].node.is_none());
+        }
+       
+        #[test]
+        fn can_add_node() { 
+            let mut grid = Grid::new(SIZE_X, SIZE_Y);
+            assert!(grid.tiles[2][3].node.is_none());
+            assert!(grid.add_node(2,3).is_ok());
+            assert!(grid.tiles[2][3].node.is_some());
+        }
+        
+        #[test]
+        fn cannot_add_node_outside_range() {
+            let mut grid = Grid::new(SIZE_X, SIZE_Y);
+            assert!(grid.add_node(SIZE_X, SIZE_X).is_err());
+            assert!(grid.add_node(-1, -1).is_err());
+        }
+        
+        #[test]
+        fn cannot_add_node_to_full_location() {
+            let mut grid = Grid::new(SIZE_X, SIZE_Y);
+            assert!(grid.add_node(0,0).is_ok());
+            assert!(grid.add_node(0,0).is_err());
+        }
     }
 
-    #[test]
-    fn can_initialize_empty_grid() {
-        let grid = Grid::new(SIZE_X, SIZE_Y);
-        assert!(grid.tiles[0][0].node.is_none());
-    }
-   
-    #[test]
-    fn can_add_node() { 
-        let mut grid = Grid::new(SIZE_X, SIZE_Y);
-        assert!(grid.add_node(2,3).is_ok());
-        assert!(grid.tiles[2][3].node.is_some());
-    }
-    
-    #[test]
-    fn cannot_add_node_outside_range() {
-        let mut grid = Grid::new(SIZE_X, SIZE_Y);
-        assert!(grid.add_node(SIZE_X, SIZE_X).is_err());
-        assert!(grid.add_node(-1, -1).is_err());
-        // TODO test for specific error type
-    }
-    
-    #[test]
-    fn cannot_add_node_to_full_location() {
-        let mut grid = Grid::new(SIZE_X, SIZE_Y);
-        assert!(grid.add_node(0,0).is_ok());
-        assert!(grid.add_node(0,0).is_err());
-    }
+    mod movement {
+        use super::*;
 
-    #[test]
-    fn can_move_node() {
-        let mut grid = Grid::new(SIZE_X, SIZE_Y);
-        assert!(grid.add_node(2,3).is_ok());
-        assert!(grid.tiles[2][3].node.is_some());
-        assert!(grid.tiles[4][5].node.is_none());
-        assert!(grid.move_node((2,3),(4,5)).is_ok());
-        assert!(grid.tiles[2][3].node.is_none());
-        assert!(grid.tiles[4][5].node.is_some());
+        #[test]
+        fn can_move_node() {
+            let mut grid = Grid::new(SIZE_X, SIZE_Y);
+            grid.add_node(2,3).unwrap();
+            assert!(grid.move_node((2,3),(4,5)).is_ok());
+            assert!(grid.tiles[2][3].node.is_none());
+            assert!(grid.tiles[4][5].node.is_some());
+        }
+
+        #[test]
+        fn cannot_move_node_from_empty_tile() {
+            let mut grid = Grid::new(SIZE_X, SIZE_Y);
+            assert!(grid.move_node((2,3),(4,5)).is_err());
+        }
+
+        #[test]
+        fn cannot_move_node_to_full_tile() {
+            let mut grid = Grid::new(SIZE_X, SIZE_Y);
+            grid.add_node(2,3).unwrap();
+            grid.add_node(4,5).unwrap();
+            assert!(grid.move_node((2,3),(4,5)).is_err());
+        } 
+        
     }
-    fn cannot_move_none_node() {}
-    fn cannot_move_node_to_full_space() {} 
 }
 
