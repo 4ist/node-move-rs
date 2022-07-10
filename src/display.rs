@@ -1,8 +1,8 @@
 use nannou::prelude::*;
-use crate::Node;
+
 use crate::NodeType;
 use crate::Grid;
-use crate::Tile;
+
 use crate::TileType;
 
 pub fn display() {
@@ -44,9 +44,9 @@ fn model(app: &App) -> Model {
     Model { grid }
 }
 
-fn update(app: &App, model: &mut Model, _update: Update) {
-    for x in 0..model.grid.size_x{
-        for y in 0..model.grid.size_y {
+fn update(_app: &App, model: &mut Model, _update: Update) {
+    for _x in 0..model.grid.size_x{
+        for _y in 0..model.grid.size_y {
             // TODO figure out clock system
         }
     }
