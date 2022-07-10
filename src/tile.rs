@@ -5,6 +5,7 @@ pub enum TileType {
     None,
     Ground,
     Water, 
+    Gold, 
 }
 
 pub struct Tile {

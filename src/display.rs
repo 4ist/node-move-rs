@@ -14,9 +14,6 @@ const WINDOW_SIZE_PX_X: u32 = 1500;
 const WINDOW_SIZE_PX_Y: u32 = 900;
 const TILE_SIZE_PX: u32 = 32;
 
-const GRID_SIZE_PX_X: u32 = (WINDOW_SIZE_PX_X - (2 * TILE_SIZE_PX)) as u32;
-const GRID_SIZE_PX_Y: u32 = (WINDOW_SIZE_PX_Y - (2 * TILE_SIZE_PX)) as u32;
-
 const GRID_SIZE_X: i32 = (WINDOW_SIZE_PX_X / TILE_SIZE_PX) as i32;
 const GRID_SIZE_Y: i32 = (WINDOW_SIZE_PX_Y / TILE_SIZE_PX) as i32;
 
@@ -40,7 +37,9 @@ fn model(app: &App) -> Model {
 
     let mut grid = Grid::new(GRID_SIZE_X, GRID_SIZE_Y); 
     grid.setup_add_tile_types();
-    grid.setup_add_nodes();
+    grid.setup_add_node_cursor();
+    grid.setup_add_nodes_terrain();
+    grid.setup_add_gold_tile();
     Model { grid }
 }
 
@@ -182,6 +181,7 @@ fn color_from_tile_type(tile_type: &TileType) -> Srgb<u8> {
         TileType::None => return BLACK,
         TileType::Ground => return TAN,
         TileType::Water => return BLUE,
+        TileType::Gold=> return GOLD,
     } 
 }
 

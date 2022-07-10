@@ -3,12 +3,9 @@ use crate::TileType;
 use crate::Node;
 use crate::NodeType;
 
-pub trait TimedEvent {
-    fn addEvent() {}
-}
+use rand::Rng; // 0.8.0
 
 pub struct Grid { 
-    //pub tiless: Vec<Vec<Tile>>,  
     tiles: Vec<Tile>,  
     pub size_x: i32,
     pub size_y: i32,
@@ -30,7 +27,6 @@ impl Grid {
             cursor_pos: None,
         } 
     }
-
 
     pub fn get_tile<'a>(&'a self, x: i32, y: i32) -> &'a Tile {
         let index = ( x * self.size_y + y) as usize;
@@ -55,33 +51,52 @@ impl Grid {
             }
         }
     }
+    
+    pub fn setup_add_gold_tile(&mut self) {
+        let x = rand::thread_rng().gen_range(0..self.size_x);
+        let y = rand::thread_rng().gen_range(0..self.size_y);
+        let tile = self.get_tile_mut(x, y);
+        tile.tile_type = TileType::Gold;
+    }
    
-    pub fn setup_add_nodes(&mut self) {
+    pub fn setup_add_node_cursor(&mut self) {
+        let x = self.size_x/2;
+        let y = self.size_y/2;
+        let mut node = Node::new(x, y);
+        node.node_type = NodeType::Cursor;
+
+        self.get_tile_mut(x, y).node = Some(node);
+        self.cursor_pos = Some((x, y));
+    }
+    
+    pub fn setup_add_nodes_terrain(&mut self) {
         for x in 0..self.size_x {
             for y in 0..self.size_y {
                 match self.get_tile(x, y).tile_type {
                     TileType::Water => (),
                     _ => {
-                        let mut node = Node::new(x, y);
-                        if y % 3 == 0 && x % 2 == 0 {
-                            node.node_type = NodeType::Bush;
-                        }
-                        if x == 1 || y == 1 || x == self.size_x - 2 || y == self.size_y - 2 {
-                            node.node_type = NodeType::Rock;
-                        }
-                        if x == self.size_x/2 && y == self.size_y/2 {
-                            node.node_type = NodeType::Cursor;
-                            self.cursor_pos = Some((x, y));
-                        }
-                        match node.node_type {
-                            NodeType::None => (),
-                            _ => self.get_tile_mut(x, y).node = Some(node),
+                        match self.get_tile(x, y).node{
+                            None => {
+                                let mut node = Node::new(x, y);
+                                if y % 3 == 0 && x % 2 == 0 {
+                                    node.node_type = NodeType::Bush;
+                                }
+                                if x == 1 || y == 1 || x == self.size_x - 2 || y == self.size_y - 2 {
+                                    node.node_type = NodeType::Rock;
+                                }
+                                match node.node_type {
+                                    NodeType::None => (),
+                                    _ => self.get_tile_mut(x, y).node = Some(node),
+                                }
+                            },
+                            Some(_) => (),
                         }
                     }
                 }
             }
         }
     }
+
 
     pub fn is_valid_location(&self, location: (i32, i32)) -> bool {
         location.0 < self.size_x && 

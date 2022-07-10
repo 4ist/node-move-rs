@@ -14,7 +14,6 @@ use crate::display::display;
 
 fn main() {
     println!("Hello, worlt!");
-
     display();
     println!("Goodbye");
 }
