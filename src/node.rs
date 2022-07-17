@@ -1,15 +1,3 @@
-
-
-
-
-#[derive(Clone)]
-pub enum NodeType {
-    None,
-    Bush,
-    Rock,
-    Cursor,
-}
-
 #[derive(Clone)]
 pub struct Node {
     pub node_type: NodeType,
@@ -17,6 +5,12 @@ pub struct Node {
     pub pos_y: i32,
 }
 
+#[derive(Clone)]
+pub enum NodeType {
+    None,
+    Bush,
+    Rock,
+}
 
 impl Node {
     pub fn new(pos_x: i32, pos_y: i32) -> Node {
@@ -25,15 +19,6 @@ impl Node {
             pos_x,
             pos_y,
         }
-
     }
 }
-
-
-
-
-
-
-
-
 

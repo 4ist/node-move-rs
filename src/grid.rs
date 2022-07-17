@@ -2,6 +2,7 @@ use crate::Tile;
 use crate::TileType;
 use crate::Node;
 use crate::NodeType;
+use crate::Cursor;
 
 use rand::Rng; // 0.8.0
 
@@ -9,7 +10,14 @@ pub struct Grid {
     tiles: Vec<Tile>,  
     pub size_x: i32,
     pub size_y: i32,
-    pub cursor_pos: Option<(i32, i32)>,
+    pub cursor : Option<Cursor>,
+}
+
+pub enum Direction {
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
 }
 
 impl Grid {
@@ -24,7 +32,7 @@ impl Grid {
             size_x,
             size_y,
             tiles,
-            cursor_pos: None,
+            cursor: None,
         } 
     }
 
@@ -62,11 +70,7 @@ impl Grid {
     pub fn setup_add_node_cursor(&mut self) {
         let x = self.size_x/2;
         let y = self.size_y/2;
-        let mut node = Node::new(x, y);
-        node.node_type = NodeType::Cursor;
-
-        self.get_tile_mut(x, y).node = Some(node);
-        self.cursor_pos = Some((x, y));
+        self.cursor = Some(Cursor::new(x, y));
     }
     
     pub fn setup_add_nodes_terrain(&mut self) {
@@ -97,16 +101,103 @@ impl Grid {
         }
     }
 
+    pub fn get_size(&self) -> (i32, i32) {
+        (self.size_x, self.size_y)
+    }
 
-    pub fn is_valid_location(&self, location: (i32, i32)) -> bool {
-        location.0 < self.size_x && 
+    fn get_index_from_position(&self, x: i32, y:i32) -> usize{
+        (x * self.size_y + y) as usize
+    }
+
+    pub fn use_cursor(&mut self) -> Result<(), String> {
+        match &mut self.cursor {
+            Some(cursor) => {
+                let (x, y) = (cursor.pos_x, cursor.pos_y);
+                let index = ( x * self.size_y + y) as usize;
+                //let tile = self.get_tile_mut(cursor.pos_x, cursor.pos_y);
+                let tile = &mut self.tiles[index]; // I really don't want to access this directly,
+                                                   // but It may be fine for now since this is a
+                                                   // private field? Will redesign later
+                match (&cursor.node, &tile.node) {
+                    (None, None) => {
+                        // Nothing 
+                        return Ok(());
+                    }
+                    (None, Some(node)) => {
+                        // Pickup 
+                        let cnode = node.clone();
+                        cursor.node = Some(cnode);
+                        tile.node = None;
+                        return Ok(());
+                    }
+                    (Some(node), None) => {
+                        // Drop 
+                        let cnode = node.clone();
+                        tile.node = Some(cnode);
+                        cursor.node = None;
+                        return Ok(());
+                    }
+                    (Some(_), Some(_)) => {
+                        // Collision
+                        return Err("No action available; cursor and tile both contain a node".to_string()); 
+                    }
+                }
+            },
+            None => Err("Cursor does not exist".to_string())
+        }
+    }
+
+    pub fn move_cursor(&mut self, direction: Direction) -> Result<(), String> {
+        match &mut self.cursor {
+            Some(cursor) => {
+                let location: (i32, i32); 
+                match direction {
+                    Direction::UP => {
+                        location = (cursor.pos_x + 0, cursor.pos_y + 1);
+                    },
+                    Direction::DOWN => {
+                        location = (cursor.pos_x + 0, cursor.pos_y - 1);
+                    },
+                    Direction::LEFT => {
+                        location = (cursor.pos_x - 1, cursor.pos_y + 0);
+                    },
+                    Direction::RIGHT => {
+                        location = (cursor.pos_x + 1, cursor.pos_y + 0);
+                    },
+                }
+                if !Grid::is_valid_location((self.size_x, self.size_x), location) {
+                    return Err("Invalid cursor move".to_string()); 
+                }
+               
+                if cursor.node.is_some() {
+                    let index = (location.0 * self.size_y + location.1) as usize;
+                    if self.tiles[index].node.is_some() {
+                        return Err("Invalid cursor move; cursor and destination both contain a node".to_string()); 
+                    }
+                }
+
+               
+                if !Grid::is_valid_location((self.size_x, self.size_y), location) {
+                    return Err("Invalid cursor move; out of bounds".to_string()); 
+                }
+                else {
+                    cursor.set_location(location.0, location.1);
+                    return Ok(());
+                }
+            },
+            None => Err("Cursor does not exist".to_string())
+        }
+    }
+
+    pub fn is_valid_location(grid_size: (i32, i32), location: (i32, i32)) -> bool {
+        location.0 < grid_size.0 && 
         location.0 >= 0 &&  
-        location.1 < self.size_y && 
+        location.1 < grid_size.1 && 
         location.1 >= 0
     }
 
     pub fn add_node(&mut self, x: i32, y: i32) -> Result<(), String> {
-        if !self.is_valid_location((x, y)) {
+        if !Grid::is_valid_location((self.size_x, self.size_y), (x, y)) {
             return Err("Provided position out of range".to_string()); 
         }
         let target_tile = self.get_tile_mut(x, y);
@@ -120,10 +211,10 @@ impl Grid {
     }
 
     pub fn move_node(&mut self, src: (i32, i32), dst: (i32, i32)) -> Result<(), String> {
-        if !self.is_valid_location(src) {
+        if !Grid::is_valid_location(self.get_size(), src) {
             return Err("Provided source position out of range".to_string()); 
         }
-        if !self.is_valid_location(dst) {
+        if !Grid::is_valid_location(self.get_size(), dst) {
             return Err("Provided source position out of range".to_string()); 
         } 
         if !self.get_tile(src.0, src.1).contains_node() {
@@ -139,7 +230,6 @@ impl Grid {
         Ok(())
     }
 
-    pub fn display() {}
 }
 
 #[cfg(test)]
