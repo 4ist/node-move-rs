@@ -2,6 +2,7 @@ use crate::Node;
 use crate::Tile;
 
 
+#[derive(Clone)]
 pub struct Cursor {
     pub node: Option<Node>, 
     pub pos_x: i32,

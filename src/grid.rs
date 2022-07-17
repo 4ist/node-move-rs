@@ -271,7 +271,7 @@ mod tests {
         }
     }
 
-    mod movement {
+    mod node_movement {
         use super::*;
 
         #[test]
@@ -295,6 +295,84 @@ mod tests {
             grid.add_node(2,3).unwrap();
             grid.add_node(4,5).unwrap();
             assert!(grid.move_node((2,3),(4,5)).is_err());
+        } 
+        
+    }
+
+    mod cursor {
+        use super::*;
+
+        fn setup_test_grid() -> Grid {
+            let mut grid = Grid::new(SIZE_X, SIZE_Y);
+            grid.add_node(2,3).unwrap();
+            grid.add_node(4,5).unwrap();
+            grid.cursor = Some(Cursor::new(0,0)); 
+            return grid;
+        }
+        
+        #[test]
+        fn can_move_cursor() {
+            let mut grid = setup_test_grid();
+            grid.move_cursor(Direction::RIGHT).unwrap();
+            grid.move_cursor(Direction::RIGHT).unwrap();
+            grid.move_cursor(Direction::UP).unwrap();
+            grid.move_cursor(Direction::UP).unwrap();
+            grid.move_cursor(Direction::UP).unwrap();
+            grid.move_cursor(Direction::LEFT).unwrap();
+            grid.move_cursor(Direction::DOWN).unwrap();
+            let cursor = grid.cursor.unwrap();
+            assert!(cursor.pos_x == 1);
+            assert!(cursor.pos_y == 2);
+
+        }
+
+        #[test]
+        fn can_pickup_node() {
+            let mut grid = setup_test_grid();
+            grid.move_cursor(Direction::RIGHT).unwrap();
+            grid.move_cursor(Direction::RIGHT).unwrap();
+            grid.move_cursor(Direction::UP).unwrap();
+            grid.move_cursor(Direction::UP).unwrap();
+            grid.move_cursor(Direction::UP).unwrap();
+
+            grid.use_cursor().unwrap();
+            assert!(grid.get_tile(2,3).node.is_none());
+            assert!(grid.cursor.unwrap().node.is_some());
+        }
+
+        #[test]
+        fn can_move_cursor_with_node_to_empty_tile() {
+            let mut grid = setup_test_grid();
+            grid.move_cursor(Direction::RIGHT).unwrap();
+            grid.move_cursor(Direction::RIGHT).unwrap();
+            grid.move_cursor(Direction::UP).unwrap();
+            grid.move_cursor(Direction::UP).unwrap();
+            grid.move_cursor(Direction::UP).unwrap();
+
+            grid.use_cursor().unwrap();
+            
+            assert!(grid.move_cursor(Direction::UP).is_ok());
+            assert!(grid.cursor.unwrap().node.unwrap().pos_y == 4);
+        }
+
+        #[test]
+        fn cannot_move_cursor_with_node_to_full_tile() {
+            let mut grid = setup_test_grid();
+            grid.move_cursor(Direction::RIGHT).unwrap();
+            grid.move_cursor(Direction::RIGHT).unwrap();
+            grid.move_cursor(Direction::UP).unwrap();
+            grid.move_cursor(Direction::UP).unwrap();
+            grid.move_cursor(Direction::UP).unwrap();
+
+            grid.use_cursor().unwrap();
+            grid.move_cursor(Direction::UP).unwrap();
+            grid.move_cursor(Direction::UP).unwrap();
+            grid.move_cursor(Direction::RIGHT).unwrap();
+            assert!(grid.move_cursor(Direction::RIGHT).is_err());
+           
+            let cursor = grid.cursor.unwrap();
+            assert!(cursor.pos_x == 3);
+            assert!(cursor.node.unwrap().pos_x == 3);
         } 
         
     }

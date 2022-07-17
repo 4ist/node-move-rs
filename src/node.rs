@@ -1,4 +1,5 @@
 #[derive(Clone)]
+#[derive(Copy)]
 pub struct Node {
     pub node_type: NodeType,
     pub pos_x: i32,
@@ -6,6 +7,7 @@ pub struct Node {
 }
 
 #[derive(Clone)]
+#[derive(Copy)]
 pub enum NodeType {
     None,
     Bush,
